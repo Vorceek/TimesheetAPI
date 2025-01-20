@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'backend.api',
     'backend.base',
     'rest_framework',
+    'import_export',
 ]
 
 MIDDLEWARE = [
