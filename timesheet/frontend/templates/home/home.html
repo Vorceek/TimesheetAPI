@@ -1,0 +1,383 @@
+{% extends 'theme/base.html' %}
+{% load static %}
+{% block content %}
+
+    <main>
+        <h1>Atividades do Dia</h1>
+    
+        <table>
+            <thead>
+                
+                <tr class="atividade-topo">
+                    <!-- Linha de botão Adicionar Atividade -->
+                    <th colspan="6" class="top_buttons">
+                
+                        <div class="atividade-right">
+                            <div class="atividade-left">
+                                <button type="button" class="btn-add-atividade">Nova Atividade</button>
+
+                                <!-- Modal -->
+                            <div id="modal-nova-atividade" class="modal">
+                                <div class="modal-content">
+                                    <span class="close" id="close-modal">&times;</span>
+                                    <h2>Nova Atividade</h2>
+                                    
+                                    <form method="POST" class="form-add">
+                                        {% csrf_token %}
+                                        
+                                        <select name="cliente" id="id_cliente">
+                                            <option value="" disabled selected>Selecione o Cliente</option>
+                                            {% for cliente in clientes %}
+                                                <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        
+                                        <select name="servico" id="id_servico" disabled>
+                                            <option value="" disabled selected>Selecione o Serviço</option>
+                                        </select>
+                                        
+                                        <select name="atividade" id="id_atividade" disabled>
+                                            <option value="" disabled selected>Selecione a Atividade</option>
+                                        </select>
+                                        
+                                        <button class="botao-add-form" type="submit">Registrar Atividade</button>
+                                    </form>
+                                    
+                                </div>
+                            </div>
+    
+                                {% for atividade in page_obj %}
+                                    {% if atividade.ativo %}
+                                        <button 
+                                            class="btn-finalizar-atividade" 
+                                            data-id="{{ atividade.id }}" 
+                                            onclick="finalizarAtividadePorElemento(this)">
+                                            Finalizar Atividade
+                                        </button>
+                                    {% endif %}
+                                {% endfor %}
+    
+                            </div>
+                        </div>
+                    </th>
+                </tr>
+
+                <tr>
+                    <th>Cliente</th>
+                    <th>Serviço</th>
+                    <th>Atividade</th>
+                    <th>Data Inicial</th>
+                    <th>Data Final</th>
+                    <th>Duração</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% with total_duracao=0 %}
+                {% for atividade in page_obj %}
+                    {% if atividade.hora|date:"Y-m-d" == today %}
+                        {% with total_duracao=total_duracao|add:atividade.duracao %}
+                        
+                        <tr>
+                            <td>{{ atividade.cliente }}</td>
+                            <td>{{ atividade.servico }}</td>
+                            <td>{{ atividade.atividade }}</td>
+                            <td>{{ atividade.hora|date:"d/m/Y H:i"|default:"-" }}</td>
+
+                            <!--RELAÇÃO ATIVIDADE ABERTA/DURAÇÃO -->
+                            <td id="atividade_ativo_{{ atividade.id }}" style="display: none;">{{ atividade.ativo }}</td>
+                            <td id="data_fim_{{ atividade.id }}">
+                                {{ atividade.data_fim|date:"d/m/Y H:i"|default:"Atividade Ativa" }}
+                            </td>
+                            <td id="duracao_{{ atividade.id }}">
+                                {{ atividade.duracao }}
+                            </td>
+                            <td id="hora_inicio_{{ atividade.id }}" style="display: none;">
+                                {{ atividade.hora|date:"Y-m-d H:i:s" }}
+                            </td>
+                        </tr>
+                        
+                        {% endwith %}
+                    {% endif %}
+                {% empty %}
+                    <tr>
+                        <td colspan="6">Nenhuma atividade registrada para hoje.</td>
+                    </tr>
+                {% endfor %}
+                {% endwith %}
+            </tbody>
+            <tfoot>
+                <tr style="background-color: transparent;">
+                    <td colspan="5" style="text-align: right; font-weight: bold;">Total de Horas:</td>
+                    <td>{{ total_duracao }}</td>
+                </tr>
+            </tfoot>
+        </table>
+        
+        
+    
+        <!-- Colocar a paginação logo após a tabela -->
+        <div class="pagination">
+            <ul class="pagination-list">
+                {% if page_obj.has_previous %}
+                    <li><a href="?page=1">&laquo; Primeira</a></li>
+                    <li><a href="?page={{ page_obj.previous_page_number }}">Anterior</a></li>
+                {% else %}
+                    <li class="disabled">&laquo; Primeira</li>
+                    <li class="disabled">Anterior</li>
+                {% endif %}
+        
+                <li class="current">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</li>
+        
+                {% if page_obj.has_next %}
+                    <li><a href="?page={{ page_obj.next_page_number }}">Próxima</a></li>
+                    <li><a href="?page={{ page_obj.paginator.num_pages }}">Última &raquo;</a></li>
+                {% else %}
+                    <li class="disabled">Próxima</li>
+                    <li class="disabled">Última &raquo;</li>
+                {% endif %}
+            </ul>
+        </div>
+    </main>
+    
+    
+    <!--Script filtros-->
+<script>
+    const clienteSelect = document.getElementById('id_cliente');
+    const servicoSelect = document.getElementById('id_servico');
+    const atividadeSelect = document.getElementById('id_atividade');
+
+    // Atualiza os serviços quando o cliente é selecionado
+    document.getElementById('id_cliente').addEventListener('change', function () {
+    const clienteId = this.value; // Obtém o ID do cliente selecionado
+
+    // Reseta os selects de serviço e atividade
+    const servicoSelect = document.getElementById('id_servico');
+    const atividadeSelect = document.getElementById('id_atividade');
+    servicoSelect.innerHTML = '<option value="" disabled selected>Selecione o Serviço</option>';
+    atividadeSelect.innerHTML = '<option value="" disabled selected>Selecione a Atividade</option>';
+    servicoSelect.disabled = true; // Bloqueia o select de serviços
+    atividadeSelect.disabled = true; // Bloqueia o select de atividades
+
+    fetch(`/home/get-servicos/${clienteId}/`)
+        .then(response => {
+            if (!response.ok) throw new Error('Erro ao carregar os serviços.');
+            return response.json();
+        })
+        .then(data => {
+            // Preenche o select de serviços
+            data.servicos.forEach(servico => {
+                const option = document.createElement('option');
+                option.value = servico.id;
+                option.textContent = servico.nome;
+                servicoSelect.appendChild(option);
+            });
+            servicoSelect.disabled = false; // Desbloqueia o select de serviços
+
+            // Adiciona o evento de mudança ao campo serviço
+            servicoSelect.addEventListener('change', function () {
+                const servicoId = this.value;
+
+                // Reseta o select de atividades
+                atividadeSelect.innerHTML = '<option value="" disabled selected>Selecione a Atividade</option>';
+                atividadeSelect.disabled = true; // Bloqueia o select de atividades
+
+                fetch(`/home/get-atividades/${servicoId}/`)
+                    .then(response => {
+                        if (!response.ok) throw new Error('Erro ao carregar as atividades.');
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Preenche o select de atividades
+                        data.atividades.forEach(atividade => {
+                            const option = document.createElement('option');
+                            option.value = atividade.id;
+                            option.textContent = atividade.nome;
+                            atividadeSelect.appendChild(option);
+                        });
+                        atividadeSelect.disabled = false; // Desbloqueia o select de atividades
+                    })
+                    .catch(error => {
+                        console.error('Erro ao carregar atividades:', error);
+                    });
+            });
+        })
+        .catch(error => {
+            console.error('Erro ao carregar serviços:', error);
+        });
+});
+
+
+
+    // Atualiza as atividades quando o serviço é selecionado
+    servicoSelect.addEventListener('change', function () {
+        const servicoId = this.value;
+
+        fetch(`/home/get-servicos/${clienteId}/`)
+            .then(response => {
+                if (!response.ok) throw new Error('Erro ao carregar os serviços.');
+                return response.json();
+            })
+            .then(data => {
+                // Preencher os dados no select
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+            });
+
+    });
+</script>
+    
+    <script>
+        function iniciarContagem() {
+            // Pega todos os elementos de hora de início
+            const atividades = document.querySelectorAll('[id^="hora_inicio_"]');
+            
+            atividades.forEach(function(element) {
+                const atividadeId = element.id.split('_')[2]; // Ex: hora_inicio_1 => id = 1
+                const horaInicio = element.innerText; // Hora de início da atividade
+                const horaInicioDate = new Date(horaInicio); // Converte para objeto Date
+                
+                // Verifica se a atividade está ativa (usando a variável ativo)
+                const ativo = document.getElementById(`atividade_ativo_${atividadeId}`)?.innerText === 'True'; 
+                if (!ativo) {
+                    // Se a atividade não está ativa, não inicia o temporizador
+                    return;
+                }
+    
+                // Função que será chamada a cada segundo
+                const intervalId = setInterval(function() {
+                    // Verifica se a atividade está ativa
+                    const ativo = document.getElementById(`atividade_ativo_${atividadeId}`)?.innerText === 'True'; 
+                    if (!ativo) {
+                        clearInterval(intervalId); // Se a atividade não está ativa, para o contador
+                        return;
+                    }
+    
+                    // Pega a hora atual
+                    const tempoAtual = new Date();
+                    
+                    // Calcula a diferença entre o tempo atual e a hora de início
+                    const diffMilliseconds = tempoAtual - horaInicioDate;
+                    
+                    // Converte a diferença em segundos, minutos e horas
+                    const diffSeconds = Math.floor(diffMilliseconds / 1000); // Milissegundos para segundos
+                    const diffMinutes = Math.floor(diffSeconds / 60); // Segundos para minutos
+                    const diffHours = Math.floor(diffMinutes / 60); // Minutos para horas
+                    const remainingMinutes = diffMinutes % 60; // Minutos restantes
+                    const remainingSeconds = diffSeconds % 60; // Segundos restantes
+    
+                    // Atualiza a duração na interface
+                    const duracaoElement = document.getElementById(`duracao_${atividadeId}`);
+                    duracaoElement.innerText = `${diffHours}h ${remainingMinutes}m ${remainingSeconds}s`;
+                }, 1000);  // Atualiza a cada 1 segundo
+            });
+        }
+        
+        // Inicia a contagem assim que a página for carregada
+        window.onload = iniciarContagem;
+    </script>
+
+
+    <script>
+
+    function finalizarAtividadePorElemento(buttonElement) {
+        // Desabilita o botão para impedir múltiplos cliques
+        buttonElement.disabled = true;
+
+        const atividadeId = buttonElement.getAttribute("data-id");
+
+        fetch(`/relacionamento/minhas_atividades/finalizar_atividade/${atividadeId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({id: atividadeId})
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erro na requisição: ' + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const dataFimElement = document.getElementById(`data_fim_${atividadeId}`);
+                dataFimElement.innerText = data.data_fim || 'Finalizado';  // Atualiza a data de fim
+
+                // Remover o botão e colocar um status "Finalizado"
+                buttonElement.remove();
+                const statusElement = buttonElement.parentElement;
+                statusElement.innerHTML = '<span>Atividade Finalizada</span>';
+
+                // Atualiza a página (recarrega)
+                location.reload();  // Recarrega a página para garantir que o tempo pare
+            } else {
+                const statusElement = buttonElement.parentElement;
+                statusElement.innerHTML = '<span>Falha ao finalizar a atividade. Tente novamente.</span>';
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            const statusElement = buttonElement.parentElement;
+            statusElement.innerHTML = '<span>Ocorreu um erro inesperado. Tente novamente.</span>';
+            location.reload();
+        })
+        .finally(() => {
+            buttonElement.disabled = false;
+            location.reload();
+        });
+    }
+
+    </script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('modal-nova-atividade');
+    const openModalBtn = document.querySelector('.btn-add-atividade');
+    const closeModal = document.getElementById('close-modal');
+
+    // Abrir o modal
+    openModalBtn.addEventListener('click', () => {
+        modal.style.display = 'block';
+    });
+
+    // Fechar o modal
+    closeModal.addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
+
+    // Fechar o modal ao clicar fora dele
+    window.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+});
+
+</script>
+
+<script type="application/json" id="atividades_ativas">
+    {{ atividades_ativas|json_script:"atividades_ativas" }}
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('.form-add');
+
+        // Função para verificar se já existe uma atividade ativa
+        function verificarAtividadeAtiva() {
+            const atividadesAtivas = JSON.parse(document.getElementById('atividades_ativas').textContent);
+            return atividadesAtivas.length > 0;
+        }
+
+        form.addEventListener('submit', function(event) {
+            if (verificarAtividadeAtiva()) {
+                alert('Você já possui uma atividade ativa. Finalize-a antes de criar uma nova.');
+                event.preventDefault(); // Impede o envio do formulário
+            }
+        });
+    });
+</script>
+
+{% endblock %}

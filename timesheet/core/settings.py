@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'backend.api',
     'backend.base',
     'backend.login',
+    'backend.home',
     'rest_framework',
     'import_export',
 ]

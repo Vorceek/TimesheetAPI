@@ -1,0 +1,23 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dome Timesheet</title>
+    <script src="https://kit.fontawesome.com/6617ed4ead.js" crossorigin="anonymous"></script>
+    <link rel="shortcut icon" href="{% static 'img/Fav.svg' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'css/NavAside.css' %}">
+    <link rel="stylesheet" href="{% static 'css/Table.css' %}">
+    <link rel="stylesheet" href="{% static 'css/minhas_atividades.css' %}">
+    <link rel="stylesheet" href="{% static 'css/adicionar_atividade.css' %}">
+    <link rel="stylesheet" href="{% static 'css/modal.css' %}">
+    <link rel="stylesheet" href="{% static 'css/relatorio_home.css' %}">
+</head>
+<body>
+    {% include 'partials/_header.html' %}
+    {% include 'partials/_aside.html' %}
+    {% block content %}{% endblock %}
+</body>
+</html>

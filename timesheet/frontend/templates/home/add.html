@@ -1,0 +1,129 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dome Timesheet</title>
+    <script src="https://kit.fontawesome.com/6617ed4ead.js" crossorigin="anonymous"></script>
+    <link rel="shortcut icon" href="{% static 'img/Fav.svg' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'css/NavAside.css' %}">
+    <link rel="stylesheet" href="{% static 'css/add.css' %}">
+</head>
+<body>
+    <header>
+        <nav>
+            <!-- Parte Esquerda Nav -->
+            <div class="div-nav-left">
+                <div class="div-menu-left">
+                    <h1>Adicionar Novo</h1>
+                </div>   
+            </div>
+            <!-- Parte Direita Nav -->
+            <div class="div-nav-right">
+                <div class="div-user-nav">
+                    <ul>
+                        <li><h1>Olá, {{ user.username|capfirst }}</h1></li>
+                        <!-- Formulário Sair-->
+                        <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" id="btn-sair">
+                                <i class="fa-solid fa-right-from-bracket" id="exit-menu"></i>
+                            </button>
+                        </form>
+                    </ul>  
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Aside -->
+    <aside>
+        <a href="{% url 'home' %}"><img src="{% static 'img/Branca.svg' %}" alt="o-dome" id="logo-dome"></a>
+        <div class="aside-content">
+            <ul class="aside-ul-content">
+                <li><a href="{% url 'add' %}"><i class="fa-solid fa-plus" id="soma-icon"></i></a></li>
+                <li><a href="{% url 'minhas_atividades' %}"><i class="fa-solid fa-business-time"></i></a></li>
+                
+                {% if user.is_authenticated %}
+                {% if is_admin %}
+                <li><a href="{% url 'gerar_relatorio' %}"><i class="fa-solid fa-cloud-arrow-up"></i></a></li>
+                {% endif %}
+                {% endif %}
+                
+            </ul>
+        </div>
+    </aside>
+
+    <!-- Conteúdo -->
+    <main>
+        <div class="main-box">
+            <div class="main-content">
+                <h1>Nova Atividade</h1>
+                
+                <!-- Bloco para mensagens -->
+                {% if messages %}
+                    <div class="messages">
+                        {% for message in messages %}
+                            <div class="alert">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="POST" class="form-add">
+                    {% csrf_token %}
+                    
+                    <label for="id_cliente">Cliente</label>
+                    <select name="cliente" id="id_cliente">
+                        {% for cliente in clientes %}
+                            <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
+                        {% endfor %}
+                    </select>
+                
+                    <label for="id_servico">Serviço</label>
+                    <select name="servico" id="id_servico">
+                        {% for servico in servicos %}
+                            <option value="{{ servico.id }}">{{ servico.nome }}</option>
+                        {% endfor %}
+                    </select>
+                
+                    <label for="id_atividade">Atividade</label>
+                    <select name="atividade" id="id_atividade">
+                        {% for atividade in atividades %}
+                            <option value="{{ atividade.id }}">{{ atividade.nome }}</option>
+                        {% endfor %}
+                    </select>
+                
+                    <button class="botao-add-form" type="submit">Registrar Atividade</button>
+                </form>
+                
+            </div>
+        </div>
+    </main>
+
+    <script type="application/json" id="atividades_ativas">
+        {{ atividades_ativas|json_script:"atividades_ativas" }}
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('.form-add');
+
+            // Função para verificar se já existe uma atividade ativa
+            function verificarAtividadeAtiva() {
+                const atividadesAtivas = JSON.parse(document.getElementById('atividades_ativas').textContent);
+                return atividadesAtivas.length > 0;
+            }
+
+            form.addEventListener('submit', function(event) {
+                if (verificarAtividadeAtiva()) {
+                    alert('Você já possui uma atividade ativa. Finalize-a antes de criar uma nova.');
+                    event.preventDefault(); // Impede o envio do formulário
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
