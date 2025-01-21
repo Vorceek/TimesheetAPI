@@ -1,10 +1,13 @@
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
-from backend.base.models import RegistroAtividade
+from rest_framework.views import APIView
+from rest_framework import status
+from .models import RegistroAtividade 
 from .serializers import RegistroAtividadeSerializer
 
-@api_view(['GET'])
-def getData(request):
-    atividade_object = RegistroAtividade.objects.all()
-    serializer = RegistroAtividadeSerializer(atividade_object, many=True)
-    return Response(serializer.data)
+class CriarAtividadeAPIView(APIView):
+    def post(self, request):
+        serializer = RegistroAtividadeSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

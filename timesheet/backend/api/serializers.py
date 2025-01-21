@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from backend.base.models import RegistroAtividade
+from .models import RegistroAtividade
 
 class RegistroAtividadeSerializer(serializers.ModelSerializer):
     class Meta:
