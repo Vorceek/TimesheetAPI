@@ -33,6 +33,8 @@ INSTALLED_APPS = [
     'import_export',
 ]
 
+API_BASE_URL = 'http://127.0.0.1:8000/api'
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

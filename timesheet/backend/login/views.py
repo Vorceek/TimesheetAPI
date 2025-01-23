@@ -13,7 +13,7 @@ def user_login(request):
         if user is not None:
             auth_login(request, user)
             if user.groups.exists():
-                return redirect(reverse("home"))
+                return redirect(reverse("atividades"))
             else:
                 return redirect("acesso-negado/")
 

@@ -7,45 +7,39 @@
     
         <table>
             <thead>
-                
                 <tr class="atividade-topo">
                     <!-- Linha de botão Adicionar Atividade -->
                     <th colspan="6" class="top_buttons">
                 
+                        <!--BOTÃO MODAL E FINALIZAR ATIVIDADE-->
+        
                         <div class="atividade-right">
                             <div class="atividade-left">
-                                <button type="button" class="btn-add-atividade">Nova Atividade</button>
-
-                                <!-- Modal -->
-                            <div id="modal-nova-atividade" class="modal">
-                                <div class="modal-content">
-                                    <span class="close" id="close-modal">&times;</span>
-                                    <h2>Nova Atividade</h2>
+                                <form method="POST" class="form-add">
+                                    {% csrf_token %}
                                     
-                                    <form method="POST" class="form-add">
-                                        {% csrf_token %}
-                                        
-                                        <select name="cliente" id="id_cliente">
-                                            <option value="" disabled selected>Selecione o Cliente</option>
-                                            {% for cliente in clientes %}
-                                                <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
-                                            {% endfor %}
-                                        </select>
-                                        
-                                        <select name="servico" id="id_servico" disabled>
-                                            <option value="" disabled selected>Selecione o Serviço</option>
-                                        </select>
-                                        
-                                        <select name="atividade" id="id_atividade" disabled>
-                                            <option value="" disabled selected>Selecione a Atividade</option>
-                                        </select>
-                                        
-                                        <button class="botao-add-form" type="submit">Registrar Atividade</button>
-                                    </form>
+                                    <select name="cliente" id="id_cliente">
+                                        <option value="" disabled selected>Selecione o Cliente</option>
+                                        {% for cliente in clientes %}
+                                            <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
+                                        {% endfor %}
+                                    </select>
                                     
-                                </div>
-                            </div>
-    
+                                    <select name="servico" id="id_servico" disabled>
+                                        <option value="" disabled selected>Selecione o Serviço</option>
+                                    </select>
+                                    
+                                    <select name="atividade" id="id_atividade" disabled>
+                                        <option value="" disabled selected>Selecione a Atividade</option>
+                                    </select>
+                                    
+                                    <button class="botao-add-form" type="submit">Registrar Atividade</button>
+                                </form>
+                                
+                                
+                                
+        
+        
                                 {% for atividade in page_obj %}
                                     {% if atividade.ativo %}
                                         <button 
@@ -56,12 +50,13 @@
                                         </button>
                                     {% endif %}
                                 {% endfor %}
-    
+        
                             </div>
                         </div>
                     </th>
                 </tr>
-
+                
+                
                 <tr>
                     <th>Cliente</th>
                     <th>Serviço</th>
@@ -71,44 +66,36 @@
                     <th>Duração</th>
                 </tr>
             </thead>
+        
             <tbody>
-                {% with total_duracao=0 %}
                 {% for atividade in page_obj %}
-                    {% if atividade.hora|date:"Y-m-d" == today %}
-                        {% with total_duracao=total_duracao|add:atividade.duracao %}
-                        
-                        <tr>
-                            <td>{{ atividade.cliente }}</td>
-                            <td>{{ atividade.servico }}</td>
-                            <td>{{ atividade.atividade }}</td>
-                            <td>{{ atividade.hora|date:"d/m/Y H:i"|default:"-" }}</td>
-
-                            <!--RELAÇÃO ATIVIDADE ABERTA/DURAÇÃO -->
-                            <td id="atividade_ativo_{{ atividade.id }}" style="display: none;">{{ atividade.ativo }}</td>
-                            <td id="data_fim_{{ atividade.id }}">
-                                {{ atividade.data_fim|date:"d/m/Y H:i"|default:"Atividade Ativa" }}
-                            </td>
-                            <td id="duracao_{{ atividade.id }}">
-                                {{ atividade.duracao }}
-                            </td>
-                            <td id="hora_inicio_{{ atividade.id }}" style="display: none;">
-                                {{ atividade.hora|date:"Y-m-d H:i:s" }}
-                            </td>
-                        </tr>
-                        
-                        {% endwith %}
-                    {% endif %}
-                {% empty %}
-                    <tr>
-                        <td colspan="6">Nenhuma atividade registrada para hoje.</td>
-                    </tr>
+                <tr>
+                    <td>{{ atividade.cliente }}</td>
+                    <td>{{ atividade.servico }}</td>
+                    <td>{{ atividade.atividade }}</td>  
+                    <td>{{ atividade.data_inicial|date:"d/m/Y H:i"|default:"-" }}</td>
+        
+                    <!--RELAÇÃO ATIVIDADE ABERTA/DURAÇÃO -->
+                    <td id="atividade_ativo_{{ atividade.id }}" style="display: none;">{{ atividade.ativo }}</td>
+                    <td id="data_fim_{{ atividade.id }}">
+                        {{ atividade.data_final|date:"d/m/Y H:i"|default:"Atividade Ativa" }}
+                    </td>
+                    <td id="duracao_{{ atividade.id }}">
+                        {{ atividade.duracao }}
+                    </td>
+                    <td id="hora_inicio_{{ atividade.id }}" style="display: none;">
+                        {{ atividade.data_inicial|date:"Y-m-d H:i:s" }}
+                    </td>
+                    
+                </tr>
                 {% endfor %}
-                {% endwith %}
             </tbody>
             <tfoot>
                 <tr style="background-color: transparent;">
                     <td colspan="5" style="text-align: right; font-weight: bold;">Total de Horas:</td>
-                    <td>{{ total_duracao }}</td>
+                    <td>
+                        {{ total_duracao }}
+                    </td>
                 </tr>
             </tfoot>
         </table>

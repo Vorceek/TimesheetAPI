@@ -1,7 +1,15 @@
+
+
 {% extends 'theme/base.html' %}
 {% load static %}
 {% block content %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'base/adicionar_atividade.css' %}">
+<link rel="stylesheet" href="{% static 'base/table.css' %}">
+<link rel="stylesheet" href="{% static 'base/minhas_atividades.css' %}">
+<link rel="stylesheet" href="{% static 'base/modal.css' %}">
+{% endblock %}
 
 <table>
     <thead>
@@ -13,30 +21,36 @@
 
                 <div class="atividade-right">
                     <div class="atividade-left">
+
                         <form method="POST" class="form-add">
                             {% csrf_token %}
-                            
+                        
+                            <!-- Campo Cliente -->
                             <select name="cliente" id="id_cliente">
                                 <option value="" disabled selected>Selecione o Cliente</option>
                                 {% for cliente in clientes %}
                                     <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
                                 {% endfor %}
                             </select>
-                            
-                            <select name="servico" id="id_servico" disabled>
+                        
+                            <!-- Campo Serviço -->
+                            <select name="servico" id="id_servico">
                                 <option value="" disabled selected>Selecione o Serviço</option>
+                                {% for servico in servicos %}
+                                    <option value="{{ servico.id }}">{{ servico.nome }}</option>
+                                {% endfor %}
                             </select>
-                            
-                            <select name="atividade" id="id_atividade" disabled>
+                        
+                            <!-- Campo Atividade -->
+                            <select name="atividade" id="id_atividade">
                                 <option value="" disabled selected>Selecione a Atividade</option>
+                                {% for atividade in atividades %}
+                                    <option value="{{ atividade.id }}">{{ atividade.nome }}</option>
+                                {% endfor %}
                             </select>
-                            
+                        
                             <button class="botao-add-form" type="submit">Registrar Atividade</button>
                         </form>
-                        
-                        
-                        
-
 
                         {% for atividade in page_obj %}
                             {% if atividade.ativo %}
@@ -71,18 +85,18 @@
             <td>{{ atividade.cliente }}</td>
             <td>{{ atividade.servico }}</td>
             <td>{{ atividade.atividade }}</td>  
-            <td>{{ atividade.hora|date:"d/m/Y H:i"|default:"-" }}</td>
+            <td>{{ atividade.data_inicial|date:"d/m/Y H:i"|default:"-" }}</td>
 
             <!--RELAÇÃO ATIVIDADE ABERTA/DURAÇÃO -->
             <td id="atividade_ativo_{{ atividade.id }}" style="display: none;">{{ atividade.ativo }}</td>
-            <td id="data_fim_{{ atividade.id }}">
-                {{ atividade.data_fim|date:"d/m/Y H:i"|default:"Atividade Ativa" }}
+            <td id="data_final_{{ atividade.id }}">
+                {{ atividade.data_final|date:"d/m/Y H:i"|default:"Atividade Ativa" }}
             </td>
             <td id="duracao_{{ atividade.id }}">
                 {{ atividade.duracao }}
             </td>
             <td id="hora_inicio_{{ atividade.id }}" style="display: none;">
-                {{ atividade.hora|date:"Y-m-d H:i:s" }}
+                {{ atividade.data_inicial|date:"Y-m-d H:i:s" }}
             </td>
             
         </tr>
@@ -129,81 +143,60 @@
 
 <!-- JAVA SCRIPT -->
 
-<!--Script filtros-->
 <script>
-    let clienteId = null;
 
+    // SCRF TOKEN
+
+    function getCSRFToken() {
+    const name = 'csrftoken';
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.startsWith(name + '=')) {
+            return cookie.slice(name.length + 1);
+        }
+    }
+    return null; // Se o token não for encontrado
+}
+
+
+    // Referências para os selects
     const clienteSelect = document.getElementById('id_cliente');
     const servicoSelect = document.getElementById('id_servico');
     const atividadeSelect = document.getElementById('id_atividade');
 
-    // Atualiza os serviços quando o cliente é selecionado
+    // Função para preencher um select com opções
+    function preencherSelect(selectElement, data, placeholder) {
+        // Limpa o select e adiciona um placeholder
+        selectElement.innerHTML = `<option value="" disabled selected>${placeholder}</option>`;
+        data.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.id; // ID do item
+            option.textContent = item.nome; // Nome do item
+            selectElement.appendChild(option);
+        });
+        selectElement.disabled = false; // Desbloqueia o select
+    }
+
+        // Evento para carregar serviços ao selecionar um cliente
     clienteSelect.addEventListener('change', function () {
         const clienteId = this.value; // Obtém o ID do cliente selecionado
 
-        // Reseta os selects de serviço e atividade
-        servicoSelect.innerHTML = '<option value="" disabled selected>Selecione o Serviço</option>';
-        atividadeSelect.innerHTML = '<option value="" disabled selected>Selecione a Atividade</option>';
-        servicoSelect.disabled = true; // Bloqueia o select de serviços
-        atividadeSelect.disabled = true; // Bloqueia o select de atividades
+        // Reseta os selects de serviços e atividades
+        preencherSelect(servicoSelect, [], 'Selecione o Serviço');
+        preencherSelect(atividadeSelect, [], 'Selecione a Atividade');
+        servicoSelect.disabled = true;
+        atividadeSelect.disabled = true;
 
-        fetch(`/home/get-servicos/${clienteId}/`)
+        // Requisição para buscar os serviços do cliente
+        fetch(`/api/get-api/servico/?clientes=${clienteId}`)
             .then(response => {
                 if (!response.ok) throw new Error('Erro ao carregar os serviços.');
                 return response.json();
             })
             .then(data => {
-                if (data.servicos && Array.isArray(data.servicos)) {
-                    // Ordena os serviços pelo nome (case insensitive)
-                    const servicosOrdenados = data.servicos.sort((a, b) =>
-                        a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })
-                    );
-
-                    // Preenche o select de serviços
-                    servicosOrdenados.forEach(servico => {
-                        const option = document.createElement('option');
-                        option.value = servico.id;
-                        option.textContent = servico.nome;
-                        servicoSelect.appendChild(option);
-                    });
-
-                    servicoSelect.disabled = false; // Desbloqueia o select de serviços
-
-                    // Adiciona o evento de mudança ao campo serviço
-                    servicoSelect.addEventListener('change', function () {
-                        const servicoId = this.value;
-
-                        // Reseta o select de atividades
-                        atividadeSelect.innerHTML = '<option value="" disabled selected>Selecione a Atividade</option>';
-                        atividadeSelect.disabled = true; // Bloqueia o select de atividades
-
-                        fetch(`/home/get-atividades/${servicoId}/`)
-                            .then(response => {
-                                if (!response.ok) throw new Error('Erro ao carregar as atividades.');
-                                return response.json();
-                            })
-                            .then(data => {
-                                if (data.atividades && Array.isArray(data.atividades)) {
-                                    // Ordena as atividades pelo nome (case insensitive)
-                                    const atividadesOrdenadas = data.atividades.sort((a, b) =>
-                                        a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })
-                                    );
-
-                                    // Preenche o select de atividades
-                                    atividadesOrdenadas.forEach(atividade => {
-                                        const option = document.createElement('option');
-                                        option.value = atividade.id;
-                                        option.textContent = atividade.nome;
-                                        atividadeSelect.appendChild(option);
-                                    });
-
-                                    atividadeSelect.disabled = false; // Desbloqueia o select de atividades
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Erro ao carregar atividades:', error);
-                            });
-                    });
+                if (data && Array.isArray(data)) {
+                    preencherSelect(servicoSelect, data, 'Selecione o Serviço');
                 }
             })
             .catch(error => {
@@ -211,26 +204,33 @@
             });
     });
 
-
-
-    // Atualiza as atividades quando o serviço é selecionado
+    // Evento para carregar atividades ao selecionar um serviço
     servicoSelect.addEventListener('change', function () {
-        const servicoId = this.value;
+        const servicoId = this.value; // Obtém o ID do serviço selecionado
 
-        fetch(`/home/get-servicos/${clienteId}/`)
+        // Reseta o select de atividades
+        preencherSelect(atividadeSelect, [], 'Selecione a Atividade');
+        atividadeSelect.disabled = true;
+
+        // Requisição para buscar as atividades do serviço
+        fetch(`/api/get-api/atividade/?servicos=${servicoId}`)
             .then(response => {
-                if (!response.ok) throw new Error('Erro ao carregar os serviços.');
+                if (!response.ok) throw new Error('Erro ao carregar as atividades.');
                 return response.json();
             })
             .then(data => {
-                // Preencher os dados no select
+                if (data && Array.isArray(data)) {
+                    preencherSelect(atividadeSelect, data, 'Selecione a Atividade');
+                }
             })
             .catch(error => {
-                console.error('Erro:', error);
+                console.error('Erro ao carregar atividades:', error);
             });
-
     });
+
+
 </script>
+
 
 <script>
 function iniciarContagem() {
@@ -291,11 +291,11 @@ function finalizarAtividadePorElemento(buttonElement) {
 
     const atividadeId = buttonElement.getAttribute("data-id");
 
-    fetch(`/relacionamento/minhas_atividades/finalizar_atividade/${atividadeId}/`, {
+    fetch(`/atividades/finalizar_atividade/${atividadeId}/`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify({id: atividadeId})
     })

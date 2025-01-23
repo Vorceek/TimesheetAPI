@@ -8,12 +8,8 @@
     <title>Dome Timesheet</title>
     <script src="https://kit.fontawesome.com/6617ed4ead.js" crossorigin="anonymous"></script>
     <link rel="shortcut icon" href="{% static 'img/Fav.svg' %}" type="image/x-icon">
-    <link rel="stylesheet" href="{% static 'css/NavAside.css' %}">
-    <link rel="stylesheet" href="{% static 'css/Table.css' %}">
-    <link rel="stylesheet" href="{% static 'css/minhas_atividades.css' %}">
-    <link rel="stylesheet" href="{% static 'css/adicionar_atividade.css' %}">
-    <link rel="stylesheet" href="{% static 'css/modal.css' %}">
-    <link rel="stylesheet" href="{% static 'css/relatorio_home.css' %}">
+    <link rel="stylesheet" href="{% static 'partials/NavAside.css' %}">
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
     {% include 'partials/_header.html' %}

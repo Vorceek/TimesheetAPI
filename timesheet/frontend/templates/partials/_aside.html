@@ -3,13 +3,13 @@
 <!-- Aside -->
 
 <aside>
-    <a href="{% url 'home' %}"><img src="{% static 'img/Branca.svg' %}" alt="o-dome" id="logo-dome"></a></li>
+    <a href="{% url 'atividades' %}"><img src="{% static 'img/Branca.svg' %}" alt="o-dome" id="logo-dome"></a></li>
 
     <div class="aside-content">
         <ul class="aside-ul-content">
 
 
-            <li><a href="{% url 'relacionamento:minhas_atividades' %}"><i class="fa-solid fa-business-time"></i></a></li>
+            <li><a href="{% url 'atividades' %}"><i class="fa-solid fa-business-time"></i></a></li>
 
             {% if user.is_authenticated %}
             {% if is_admin %}

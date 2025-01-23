@@ -19,7 +19,7 @@ class ClienteAdmin(ImportExportModelAdmin):
     resource_class = ClienteResource
     list_display = ('id', 'nome', 'get_setores')
     list_display_links = ('id', 'nome', 'get_setores')
-    filter_horizontal = ('setor', 'servicos')  # Remover 'get_setores', pois é um método
+    filter_horizontal = ('setor', 'servicos')
 
     def get_setores(self, obj):
         return ", ".join([grupo.name for grupo in obj.setor.all()])
@@ -55,7 +55,7 @@ class AtividadeAdmin(ImportExportModelAdmin):
     resource_class = AtividadeResource
     list_display = ('id', 'nome', 'get_setores')
     list_display_links = ('id', 'nome', 'get_setores')
-    filter_horizontal = ('setor',)  # Remover 'get_setores', pois é um método
+    filter_horizontal = ('setor',)
 
     def get_setores(self, obj):
         return ", ".join([grupo.name for grupo in obj.setor.all()])
@@ -70,7 +70,7 @@ class RegistroAtividadeAdmin(admin.ModelAdmin):
     list_filter = ('cliente', 'servico', 'atividade', 'data_inicial')
 
     def hora_formatada(self, obj):
-        return localtime(obj.data_inicial).strftime('%d/%m/%Y %H:%M')  # Corrigido para 'data_inicial'
+        return localtime(obj.data_inicial).strftime('%d/%m/%Y %H:%M')
     
     hora_formatada.short_description = 'Hora'
 
