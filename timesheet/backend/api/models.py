@@ -55,17 +55,23 @@ class RegistroAtividade(models.Model):
     duracao = models.DurationField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
-        # Preenche automaticamente o setor com o nome do grupo do colaborador
+        # Atualiza o setor do colaborador
         if self.colaborador.groups.exists():
-            # Pega o primeiro grupo do colaborador
             self.setor_do_colaborador = ", ".join([grupo.name for grupo in self.colaborador.groups.all()])
         else:
             self.setor_do_colaborador = "Sem setor"
+
+        # Calcula a duração se a data final estiver preenchida
+        if self.data_final:
+            self.duracao = self.data_final - self.data_inicial
+        else:
+            self.duracao = None
+
         super().save(*args, **kwargs)
-    
+
     @property
     def fazer_duracao(self):
-        if self.data_fim:
+        if self.data_final:
             delta = self.data_final - self.data_inicial
             total_seconds = int(delta.total_seconds())
             
@@ -83,4 +89,16 @@ class RegistroAtividade(models.Model):
         return "0h 0m 0s"  # ou outro valor padrão
     
     def __str__(self):
-        return f"{self.hora.strftime('%d/%m/%Y %H:%M')} - {self.atividade}"
+        return f"{self.data_inicial.strftime('%d/%m/%Y %H:%M')} - {self.atividade}"
+    
+    @property
+    def duracao_formatada(self):
+        if self.duracao:
+            total_seconds = int(self.duracao.total_seconds())
+            hours, remainder = divmod(total_seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            return f"{hours}h {minutes}m {seconds}s"
+        elif not self.data_final:
+            # Retorna "Em andamento" enquanto a atividade não for finalizada
+            return "Em andamento"
+        return "00:00:00"

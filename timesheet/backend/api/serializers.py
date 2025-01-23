@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Cliente, Servico, Atividade, RegistroAtividade
+from django.utils.timezone import now
 
 class ClienteSerializer(serializers.ModelSerializer):
     class Meta:
@@ -16,9 +17,11 @@ class AtividadeSerializer(serializers.ModelSerializer):
         model = Atividade
         fields = ['id', 'nome', 'setor']
 
-class RegistroAtividadeSerializer(serializers.ModelSerializer):
+from rest_framework import serializers
+from datetime import timedelta
 
-    duracao_formatada = serializers.ReadOnlyField(source='fazer_duracao')
+class RegistroAtividadeSerializer(serializers.ModelSerializer):
+    duracao_formatada = serializers.SerializerMethodField()
 
     class Meta:
         model = RegistroAtividade
@@ -37,11 +40,11 @@ class RegistroAtividadeSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['colaborador', 'setor_do_colaborador', 'data_inicial', 'duracao', 'duracao_formatada']
 
-    def validate_data_final(self, value):
-        """
-        Valida que `data_final` seja posterior a `data_inicial`.
-        """
-        data_inicial = self.instance.data_inicial if self.instance else self.initial_data.get('data_inicial')
-        if data_inicial and value and value <= data_inicial:
-            raise serializers.ValidationError("A data final deve ser posterior à data inicial.")
-        return value
+    def get_duracao_formatada(self, obj):
+        if obj.duracao:
+            total_seconds = int(obj.duracao.total_seconds())
+            hours, remainder = divmod(total_seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            return f"{hours}h {minutes}m {seconds}s"
+        return "0h 0m 0s"
+

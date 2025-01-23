@@ -60,13 +60,21 @@ class HomeGerenciarAtividadesView(View):
 
     def calcular_total_duracao(self, atividades_usuario):
         """
-        Calcula a duração total das atividades.
+        Calcula a duração total das atividades e formata em horas, minutos e segundos.
         """
         total_duracao = sum(
             (atividade.data_final - atividade.data_inicial).total_seconds()
             for atividade in atividades_usuario if atividade.data_final and atividade.data_inicial
         )
-        return total_duracao
+        
+        # Converte os segundos totais em horas, minutos e segundos
+        horas = total_duracao // 3600
+        minutos = (total_duracao % 3600) // 60
+        segundos = total_duracao % 60
+
+        # Retorna a duração formatada
+        return f"{int(horas)}h {int(minutos)}m {int(segundos)}s"
+
 
     def get(self, request):
         """
@@ -85,11 +93,11 @@ class HomeGerenciarAtividadesView(View):
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
 
-        # Atualiza o contexto
+        # Atualiza o contexto com a duração formatada
         context.update({
             'form': RegistroAtividadeForm(),
             'page_obj': page_obj,
-            'total_duracao': self.calcular_total_duracao(atividades_usuario),
+            'total_duracao': self.calcular_total_duracao(atividades_usuario),  # Passando a duração formatada
         })
 
         return render(request, 'base/minhas_atividades.html', context)
@@ -106,7 +114,7 @@ class HomeGerenciarAtividadesView(View):
             atividade = form.save(commit=False)
             atividade.colaborador = user
             atividade.save()
-            return redirect('base:minhas_atividades')
+            return redirect('atividades')
 
         # Em caso de erro, reexibe o formulário com os dados inseridos
         context = self.get_context_data(user)
@@ -119,11 +127,11 @@ class HomeGerenciarAtividadesView(View):
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
 
-        # Atualiza o contexto
+        # Atualiza o contexto com a duração formatada
         context.update({
             'form': form,
             'page_obj': page_obj,
-            'total_duracao': self.calcular_total_duracao(atividades_usuario),
+            'total_duracao': self.calcular_total_duracao(atividades_usuario),  # Passando a duração formatada
         })
 
         return render(request, 'base/minhas_atividades.html', context)

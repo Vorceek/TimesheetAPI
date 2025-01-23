@@ -93,9 +93,9 @@
                 {{ atividade.data_final|date:"d/m/Y H:i"|default:"Atividade Ativa" }}
             </td>
             <td id="duracao_{{ atividade.id }}">
-                {{ atividade.duracao }}
+                {{ atividade.duracao_formatada }}
             </td>
-            <td id="hora_inicio_{{ atividade.id }}" style="display: none;">
+            <td id="data_inicial_{{ atividade.id }}" style="display: none;">
                 {{ atividade.data_inicial|date:"Y-m-d H:i:s" }}
             </td>
             
@@ -231,57 +231,55 @@
 
 </script>
 
-
 <script>
-function iniciarContagem() {
-    // Pega todos os elementos de hora de início
-    const atividades = document.querySelectorAll('[id^="hora_inicio_"]');
-    
-    atividades.forEach(function(element) {
-        const atividadeId = element.id.split('_')[2]; // Ex: hora_inicio_1 => id = 1
-        const horaInicio = element.innerText; // Hora de início da atividade
-        const horaInicioDate = new Date(horaInicio); // Converte para objeto Date
+    function iniciarContagem() {
+        // Pega todos os elementos de hora de início
+        const atividades = document.querySelectorAll('[id^="data_inicial_"]');
         
-        // Verifica se a atividade está ativa (usando a variável ativo)
-        const ativo = document.getElementById(`atividade_ativo_${atividadeId}`)?.innerText === 'True'; 
-        if (!ativo) {
-            // Se a atividade não está ativa, não inicia o temporizador
-            return;
-        }
-
-        // Função que será chamada a cada segundo
-        const intervalId = setInterval(function() {
-            // Verifica se a atividade está ativa
+        atividades.forEach(function(element) {
+            const atividadeId = element.id.split('_')[2]; // Ex: hora_inicio_1 => id = 1
+            const horaInicio = element.innerText; // Hora de início da atividade
+            const horaInicioDate = new Date(horaInicio); // Converte para objeto Date
+            
+            // Verifica se a atividade está ativa (usando a variável ativo)
             const ativo = document.getElementById(`atividade_ativo_${atividadeId}`)?.innerText === 'True'; 
             if (!ativo) {
-                clearInterval(intervalId); // Se a atividade não está ativa, para o contador
+                // Se a atividade não está ativa, não inicia o temporizador
                 return;
             }
-
-            // Pega a hora atual
-            const tempoAtual = new Date();
-            
-            // Calcula a diferença entre o tempo atual e a hora de início
-            const diffMilliseconds = tempoAtual - horaInicioDate;
-            
-            // Converte a diferença em segundos, minutos e horas
-            const diffSeconds = Math.floor(diffMilliseconds / 1000); // Milissegundos para segundos
-            const diffMinutes = Math.floor(diffSeconds / 60); // Segundos para minutos
-            const diffHours = Math.floor(diffMinutes / 60); // Minutos para horas
-            const remainingMinutes = diffMinutes % 60; // Minutos restantes
-            const remainingSeconds = diffSeconds % 60; // Segundos restantes
-
-            // Atualiza a duração na interface
-            const duracaoElement = document.getElementById(`duracao_${atividadeId}`);
-            duracaoElement.innerText = `${diffHours}h ${remainingMinutes}m ${remainingSeconds}s`;
-        }, 1000);  // Atualiza a cada 1 segundo
-    });
-}
-
-// Inicia a contagem assim que a página for carregada
-window.onload = iniciarContagem;
-</script>
-
+    
+            // Função que será chamada a cada segundo
+            const intervalId = setInterval(function() {
+                // Verifica se a atividade está ativa
+                const ativo = document.getElementById(`atividade_ativo_${atividadeId}`)?.innerText === 'True'; 
+                if (!ativo) {
+                    clearInterval(intervalId); // Se a atividade não está ativa, para o contador
+                    return;
+                }
+    
+                // Pega a hora atual
+                const tempoAtual = new Date();
+                
+                // Calcula a diferença entre o tempo atual e a hora de início
+                const diffMilliseconds = tempoAtual - horaInicioDate;
+                
+                // Converte a diferença em segundos, minutos e horas
+                const diffSeconds = Math.floor(diffMilliseconds / 1000); // Milissegundos para segundos
+                const diffMinutes = Math.floor(diffSeconds / 60); // Segundos para minutos
+                const diffHours = Math.floor(diffMinutes / 60); // Minutos para horas
+                const remainingMinutes = diffMinutes % 60; // Minutos restantes
+                const remainingSeconds = diffSeconds % 60; // Segundos restantes
+    
+                // Atualiza a duração na interface
+                const duracaoElement = document.getElementById(`duracao_${atividadeId}`);
+                duracaoElement.innerText = `${diffHours}h ${remainingMinutes}m ${remainingSeconds}s`;
+            }, 1000);  // Atualiza a cada 1 segundo
+        });
+    }
+    
+    // Inicia a contagem assim que a página for carregada
+    window.onload = iniciarContagem;
+    </script>
 
 <script>
 
@@ -291,7 +289,7 @@ function finalizarAtividadePorElemento(buttonElement) {
 
     const atividadeId = buttonElement.getAttribute("data-id");
 
-    fetch(`/atividades/finalizar_atividade/${atividadeId}/`, {
+    fetch(`/api/get-api/finalizar_atividade/${atividadeId}/`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -307,8 +305,8 @@ function finalizarAtividadePorElemento(buttonElement) {
     })
     .then(data => {
         if (data.success) {
-            const dataFimElement = document.getElementById(`data_fim_${atividadeId}`);
-            dataFimElement.innerText = data.data_fim || 'Finalizado';  // Atualiza a data de fim
+            const dataFimElement = document.getElementById(`data_final_${atividadeId}`);
+            dataFimElement.innerText = data_final || 'Finalizado';  // Atualiza a data de fim
 
             // Remover o botão e colocar um status "Finalizado"
             buttonElement.remove();

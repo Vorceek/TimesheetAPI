@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pyexpat.errors import messages
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,6 +15,15 @@ from .serializers import (
     AtividadeSerializer,
     RegistroAtividadeSerializer,
 )
+
+
+def formatar_duracao_segundos(total_segundos):
+    # Converte os segundos totais em horas, minutos e segundos
+    horas = total_segundos // 3600
+    minutos = (total_segundos % 3600) // 60
+    segundos = total_segundos % 60
+    return f"{int(horas)}h {int(minutos)}m {int(segundos)}s"
+
 
 # API para obter Clientes
 
@@ -65,31 +75,6 @@ class AtividadeAPIView(APIView):
         
         return Response(atividades_serializer.data)
 
-
-class GetAtividadesView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        servico_id = request.GET.get('servico')
-        atividades = Atividade.objects.filter(servico_id=servico_id)  # Ajuste conforme seu modelo
-        serializer = AtividadeSerializer(atividades, many=True)
-        return Response(serializer.data)
-
-class GetServicosView(APIView):
-    permission_classes = [IsAuthenticated]
-    def get(self, request, *args, **kwargs):
-        cliente_id = request.query_params.get('cliente_id')  # Obtém o ID do cliente dos parâmetros da URL
-        if not cliente_id:
-            return Response({"error": "cliente_id não fornecido."}, status=400)
-
-        try:
-            # Use o nome correto da ForeignKey no filtro
-            servicos = Servico.objects.filter(clientes__id=cliente_id)
-            servicos_data = [{"id": servico.id, "nome": servico.nome} for servico in servicos]
-            return Response({"servicos": servicos_data}, status=200)
-        except Exception as e:
-            return Response({"error": str(e)}, status=500)
-
 class AtividadesAPIView(APIView):
     def get(self, request, *args, **kwargs):
         user = request.user
@@ -132,14 +117,19 @@ class RegistroAtividadeAPIView(APIView):
         page_obj = paginator.get_page(page_number)
 
         serializer = RegistroAtividadeSerializer(page_obj, many=True)
-        total_duracao = sum(
-            (atividade.data_fim - atividade.hora).total_seconds()
-            for atividade in atividades_usuario if atividade.data_fim and atividade.hora
+
+
+        total_duracao_segundos = sum(
+            (atividade.data_final - atividade.data_inicial).total_seconds()
+            for atividade in atividades_usuario if atividade.data_final and atividade.data_inicial
         )
-        
+
+        # Formata o total de segundos em horas, minutos e segundos
+        total_duracao_formatada = formatar_duracao_segundos(total_duracao_segundos)
+            
         return Response({
             'atividades': serializer.data,
-            'total_duracao': total_duracao,
+            'total_duracao': total_duracao_formatada,
             'page': page_number,
             'has_next': page_obj.has_next(),
             'has_previous': page_obj.has_previous(),
@@ -157,12 +147,12 @@ class RegistroAtividadeAPIView(APIView):
         ).first()
 
         if atividade_ativa:
-            atividade_ativa.data_fim = now()
+            atividade_ativa.data_final = now()
             atividade_ativa.ativo = False
             atividade_ativa.save()
             messages.success(
                 request,
-                f'A atividade ativa foi finalizada em {atividade_ativa.data_fim.strftime("%d/%m/%Y %H:%M:%S")}'
+                f'A atividade ativa foi finalizada em {atividade_ativa.data_final.strftime("%d/%m/%Y %H:%M:%S")}'
             )
 
         # Registra uma nova atividade
@@ -173,11 +163,14 @@ class RegistroAtividadeAPIView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+from datetime import timedelta
+
 class FinalizarAtividadeView(APIView):
     """
     Finaliza uma atividade específica do colaborador autenticado.
     """
     def post(self, request, atividade_id):
+        # Busca a atividade que o usuário deseja finalizar
         atividade = RegistroAtividade.objects.filter(
             id=atividade_id, colaborador=request.user, ativo=True
         ).first()
@@ -185,9 +178,20 @@ class FinalizarAtividadeView(APIView):
         if not atividade:
             return Response({'error': 'Atividade não encontrada ou já finalizada.'}, status=status.HTTP_404_NOT_FOUND)
 
-        atividade.data_fim = now()
-        atividade.ativo = False
-        atividade.save()
+        # Calcula a duração da atividade
+        if atividade.data_inicial:
+            # Garantindo que o campo 'data_final' está presente
+            atividade.data_final = now()
 
-        serializer = RegistroAtividadeSerializer(atividade)
-        return Response(serializer.data)
+            # Calcule a duração subtraindo data_inicial de data_final
+            atividade.duracao = atividade.data_final - atividade.data_inicial
+
+            atividade.ativo = False  # Marca a atividade como finalizada
+            atividade.save()
+
+            # Serializa a atividade finalizada
+            serializer = RegistroAtividadeSerializer(atividade)
+            return Response(serializer.data)
+
+        return Response({'error': 'Data inicial não definida para a atividade.'}, status=status.HTTP_400_BAD_REQUEST)
+
